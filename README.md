@@ -1,5 +1,12 @@
 # DTU 02159 - Operating Systems
 
+This repository contains my notes and code examples for the course *"02159 - Operating Systems"* at DTU. It includes my own introduction to C programming, as well as various other topics related to operating systems and C.
+
+## Author
+Vincent Van Schependom
+- s251739@student.dtu.dk
+- vincent.vanschependom@student.kuleuven.be
+
 ## Introduction to C-programming
 
 I wrote out this little guide with things I learned while getting to know C programming. Hope it helps you too! -Vincent
