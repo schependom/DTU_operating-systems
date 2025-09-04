@@ -538,3 +538,53 @@ for (int i = 0; i < 10; i++)
     printf("%d\n", i);
 }
 ```
+
+## Project
+
+### Installation
+
+#### VMware installation
+
+##### Installing Rosetta 
+
+Needed in order to run x86_64 applications on Apple Silicon:
+
+```bash
+/usr/sbin/softwareupdate --install-rosetta --agree-to-license
+```
+
+##### Installing Vagrant
+
+```bash
+brew install vagrant
+```
+
+##### Installing VMWare Fusion 13
+
+VMWare Fusion *Player* is discontinued, use *Pro* instead.
+
+Click [here](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Fusion&freeDownloads=true) to download.
+
+##### Installing VMWare Utility
+
+There are two steps to install the VMWare Utility.
+
+```bash
+brew install --cask vagrant-vmware-utility
+```
+
+```bash
+vagrant plugin install vagrant-vmware-desktop
+```
+
+##### Running Vagrant
+
+Inside the project folder (!), run:
+
+```bash
+vagrant up
+```
+
+```bash
+vagrant ssh
+```
