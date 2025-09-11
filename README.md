@@ -996,12 +996,46 @@ vagrant plugin install vagrant-vmware-desktop
 
 ##### Running Vagrant
 
-Inside the project folder (!), run:
+Inside the `Project` folder (!), run:
 
 ```bash
 vagrant up
 ```
 
+Now the VM should open automatically in VMWare Fusion. **Don't close it**, but also don't continue working in the VM window.\
+Instead, connect to it via **your own terminal** (so that you can copy-paste stuff):
+
 ```bash
 vagrant ssh
+```
+
+#### Cloning the repository
+
+Create an SSH key on your VM (doing it via your own terminal though (see above)):
+
+```bash
+ssh-keygen
+```
+
+Now just accept the default destination and choose a passkey. Afterwards, print the public key:
+
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+
+Add the key to your GitHub/GitLab account and then clone the repository:
+
+```bash
+git clone <repository-url>
+```
+
+Adding an agent so that you only need to enter the passphrase once:
+
+```bash
+vagrant@server:~/os-challenge-bruteforcebrigade$ eval "$(ssh-agent -s)"
+Agent pid 65283
+vagrant@server:~/os-challenge-bruteforcebrigade$ ssh-add ~/.ssh/id_rsa
+Enter passphrase for /home/vagrant/.ssh/id_rsa:
+Identity added: /home/vagrant/.ssh/id_rsa (vagrant@server)
+vagrant@server:~/os-challenge-bruteforcebrigade$
 ```
