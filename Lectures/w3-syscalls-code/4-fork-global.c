@@ -3,25 +3,43 @@
 #include <stdlib.h>
 
 int *A;
+// GLOBAL pointer variable
+// to store the address of an integer
 
 int main(void)
 {
-  A = malloc(sizeof(int));
 
-  *A = 50;
+    // allocate 4 bytes in the heap
+    // (of each process, so two different address spaces!!)
+    // FOR A (because malloc returns an address)
+    A = malloc(sizeof(int));
 
-  printf("[%d] I am the parent process and I fork.\n", getpid());
+    // set the value at the address stored in A to 50
+    // (dereference the pointer A)
+    *A = 50;
 
-  pid_t pid = fork(); // fork a child process
-  if (pid == -1) { // error checking
-    printf("fork fail\n");
-    exit(1); // exit with exit code 1
-  }
+    printf("[%d] I am the parent process and I fork.\n", getpid());
 
-  printf("[%d] Both parent and child will execute this.\n", getpid());
+    // fork a child process
+    pid_t pid = fork();
 
-  *A = *A + 1;
-  printf("[%d] A = %d\n", getpid(), *A);
+    // always check if the systemcall worked (exit code 0 of syscall means success)
+    if (pid == -1)
+    {
+        printf("fork fail\n");
+        exit(1); // exit with exit code 1
+    }
 
-  return 0;
+    printf("[%d] Both parent and child will execute this.\n", getpid());
+
+    // Both processes increment the value at the address stored in A
+    *A = *A + 1;
+    // -> because the address space is different,
+    //    the value at the address stored in A is different for both processes!!
+    // -> Both processes print 51, NOT 52!
+
+    // Print the value at the address stored in A
+    printf("[%d] A = %d\n", getpid(), *A);
+
+    return 0;
 }

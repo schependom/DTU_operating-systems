@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/vincent/Documents/Code/DTU_operating-systems/Lectures/w3-syscalls-code/output/2-ppid'
+relocations:     []
+...

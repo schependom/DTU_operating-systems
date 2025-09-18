@@ -2,38 +2,56 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+/*
+A parent process MUST wait for its child processes to terminate.
+
+    -> An ORPHAN PROCESS is a child process whose parents have terminated.
+
+    -> A ZOMBIE PROCESS is a child process that has terminated,
+        but whose PARENT has NOT WAITED for it to terminate,
+        so it is STILL IN THE PROCESS TABLE
+*/
+
 int main(void)
 {
 
-  printf("[%d] I am the parent process and I fork.\n", getpid());
+    printf("[%d] I am the parent process and I fork.\n", getpid());
 
-  pid_t pid = fork(); // fork a child process
-  if (pid == -1) { // error checking
-    printf("fork fail\n");
-    exit(1); // exit with exit code 1
-  }
+    // fork a child process
+    pid_t pid = fork();
 
-  printf("[%d] Both parent and child will execute this.\n", getpid());
+    // error checking
+    if (pid == -1)
+    {
+        printf("fork fail\n");
+        exit(1); // exit with exit code 1
+    }
 
-  if (pid == 0) {
+    printf("[%d] Both parent and child will execute this.\n", getpid());
+
     // child process
-    printf("[%d] I am the child process and my parent is: %d\n", getpid(), getppid());
+    if (pid == 0)
+    {
+        printf("c[%d] I am the child process and my parent is: %d\n", getpid(), getppid());
 
-    printf("[%d] I am the child process and I sleep for 2 seconds.\n", getpid());
-    sleep(2);
+        printf("c[%d] I am the child process and I sleep for 2 seconds.\n", getpid());
+        sleep(2);
 
-    printf("[%d] I am the child process and my parent is: %d\n", getpid(), getppid());
+        printf("c[%d] I am the child process and my parent is: %d\n", getpid(), getppid());
+    }
+    else
+    {
+        // parent process
 
-  }
-  else {
-    // parent process
-    printf("[%d] I am the parent process and my parent is:%d\n", getpid(), getppid());
+        printf("p[%d] I am the parent process and my parent is:%d\n", getpid(), getppid());
 
-    printf("[%d] I am the parent process and I sleep for 1 seconds.\n", getpid());
-    sleep(1);
+        printf("p[%d] I am the parent process and I sleep for 1 seconds.\n", getpid());
+        sleep(1);
 
-    printf("[%d] I am the parent process and I terminate now.\n", getpid());
-  }
+        printf("p[%d] I am the parent process and I terminate now.\n", getpid());
+    }
 
-  return 0;
+    return 0;
+
+    // Parent process terminates first, before it has to wait 1 second less.
 }
