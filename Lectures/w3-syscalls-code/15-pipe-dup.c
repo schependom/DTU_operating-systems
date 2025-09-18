@@ -35,12 +35,38 @@ int main()
 
         // I am the child process
 
-        // Copy the input of the pipe to STDOUT (using the FD no of STDOUT)
-        //      -> link[1] is the fd for the write end
-        //      -> STDOUT_FILENO is the fd for standard output (1)
+        // dup2(oldfd, newfd);
+        //      -> First argument is the old fd
+        //      -> Second argument is the new fd
+        //
+        //      -> Closes newfd if it is open, and makes newfd be the copy of oldfd
+        //      -> After this call, both file descriptors refer to the same open file description
+        //
+        // Example:
+        //      saved-stdin = dup(0); // save the current file in fd 0 (stdin) in the highest free fd (e.g. 5)
+        //      dup2(saved-stdin, 0); // restore stdin from saved-stdin by copying the contents from fd slot 5 to fd slot 1
+
+        // Redirect everything that comes in at STDOUT (fd 1)
+        //  to the write end of the pipe (link[1])
+        //
+        //      -> In this way, anything the child process writes to STDOUT
+        //         will go to the pipe instead of the terminal
         dup2(link[1], STDOUT_FILENO);
 
+        /*
+            -> After this call, any data that the program writes to standard output using functions like printf, puts,
+                or write(STDOUT_FILENO, ...) will no longer go to the terminal.
+
+            -> Instead, it will be written to the write end of the pipe,
+                where it can be read from the pipe's read end (link[0]) by another process.
+
+        This is a fundamental technique for inter-process communication (IPC), commonly
+        used in shell commands like ls | grep. The output of the ls command
+        is redirected to the input of the grep command via a pipe.
+        */
+
         // Close the read and write ends of the pipe in the child
+        //  (fd's not needed anymore, because we duplicated link[1] to STDOUT's fd slot 1)
         close(link[0]);
         close(link[1]);
 
@@ -59,10 +85,14 @@ int main()
         // I am the parent process
 
         // Close the write end of the pipe
+        // because the parent will only read from the pipe
         close(link[1]);
 
         // read from the read end of the pipe
         int nbytes = read(link[0], buf, sizeof(buf));
+
+        // Close the read end of the pipe
+        close(link[0]);
 
         // %.*s prints a string with a specified length
         // here, we print nbytes characters from buf

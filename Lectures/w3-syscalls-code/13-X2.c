@@ -2,10 +2,13 @@
 
 int main(void)
 {
-  int a;
+    int a;
 
-  scanf("%d", &a);
-  printf("%d\n", a*2);
+    // Read an integer from standard input, and store it at the address of a
+    scanf("%d", &a);
 
-  return 0;
+    // Print the value of a * 2
+    printf("%d\n", a * 2);
+
+    return 0;
 }

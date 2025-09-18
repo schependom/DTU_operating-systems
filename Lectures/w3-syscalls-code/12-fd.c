@@ -50,7 +50,31 @@ int main(void)
   //  (a small integer that the kernel uses to identify the file)
   int fd = open("./temp.txt", O_WRONLY | O_CREAT, 0644);
 
-  // TODO
+  // open(const char *pathname, int flags, mode_t mode);
+  //
+  //    -> pathname: path to the file
+  //
+  //    -> flags (O_ indicates it's a flag):
+  //          -> O_WRONLY (open for writing only),
+  //          -> O_CREAT (create the file if it doesn't exist)
+  //
+  //    -> mode: file permissions
+  //          -> only used if the file is created (O_CREAT)
+  //          -> in octal (base 8)
+  //          -> translate to binary to see the permissions:
+  //
+  //                  3 bits for owner, 3 bits for group, 3 bits for others
+  //
+  //                  owner | group | others
+  //                   xxx     xxx     xxx
+  //                   |||     |||     |||
+  //                   rwx     rwx     rwx
+  //
+  //          -> 0644 = 110 100 100 -> rw-r--r--
+  //              |- owner can read and write
+  //              |- group can read
+  //              |- others can read
+
   dprintf(fd, "[%d] I print this in file (fd = %d) \n", getpid(), fd);
 
   close(fd);
