@@ -11,7 +11,8 @@ int main(void)
   printf("[%d] I fork.\n", getpid());
 
   pid_t pid = fork(); // fork a child process
-  if (pid == -1) { // error checking
+  if (pid == -1)
+  { // error checking
     printf("fork fail\n");
     exit(1); // exit with exit code 1
   }
@@ -20,4 +21,9 @@ int main(void)
   printf("[%d] A = %d, address: %p\n", getpid(), A, &A);
 
   return 0;
+
+  /*
+  Parent and child processes have their own copy of the variable A.
+  They each think they own it exclusively, but each process has its own virtual address space.
+  */
 }

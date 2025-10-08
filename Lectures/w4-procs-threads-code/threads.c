@@ -5,7 +5,8 @@
 
 int *A;
 
-void* thread(void *input) {
+void *thread(void *input)
+{
   *A = *A + 1;
   printf("[%d] A = %d\n", getpid(), *A);
   pthread_exit(NULL);
