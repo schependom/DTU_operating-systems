@@ -1,0 +1,349 @@
+\documentclass[dtu]{dtuarticle}
+\usepackage{parskip} % use enters instead of indents
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage[most]{tcolorbox} % most is required for breakable
+
+\newcounter{qnumber}[section]
+% \renewcommand{\theqnumber}{\thesubsection.\arabic{qnumber}}
+\newenvironment{question}[1][]{
+    \def\qpoints{#1}
+    \refstepcounter{qnumber}
+    \par\medskip\noindent    % Starts new para, adds space, removes indent
+    \textbf{Question \theqnumber:}
+}{
+    % Check if the argument is empty
+    \ifx\qpoints\empty
+    \else
+        \textbf{(\qpoints\ points)}
+    \fi
+    \par\medskip % Adds space after the question
+}
+
+\newcounter{lqnumber}[section]
+% \renewcommand{\theqnumber}{\thesubsection.\arabic{qnumber}}
+\newenvironment{longquestion}[1][]{
+    \def\qpoints{#1}
+    \refstepcounter{lqnumber}
+    \par\medskip\noindent    % Starts new para, adds space, removes indent
+    \textbf{Question \thelqnumber}\hspace{0.1cm}% Check if the argument is empty
+    \ifx\qpoints\empty
+    \else
+        \textbf{(\qpoints\ points)}
+    \fi
+    \par
+}{
+    \par\medskip % Adds space after the question
+}
+
+\newtcolorbox{answer}{
+    breakable,             % Allows splitting across pages
+    colback=white,         % Background color
+    colframe=gray,        % Border color
+    boxrule=0.2mm,         % Border width
+    width=\dimexpr\textwidth\relax, % Set width
+    arc=0pt, outer arc=0pt,% Makes corners sharp (like tabular)
+    left=0.2cm, right=0.2cm,   % Padding inside the box
+    top=0.2cm, bottom=0.2cm,   % Padding inside the box
+    parbox=false,          % Uses standard paragraph mode (better spacing)
+    before={\textcolor{gray}{\sffamily\bfseries\footnotesize ANSWER}\vspace{0.1cm}}
+}
+
+\title{Exam Questions}
+\subtitle{Operating Systems}
+\author{Vincent Van Schependom}
+\course{02159 Operating Systems}
+\address{
+	DTU Compute \\
+	Fall 2025
+}
+\date{Fall 2025}
+
+
+
+\begin{document}
+
+\maketitle
+
+\section*{Short questions}
+
+\begin{question}[4]
+    Name a communication method that can be used between threads of the same process but cannot be used for communication between parent and child process. Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    Different threads inside a process share the (physical) address space of that process. They can thus share variables in memory and communicate via those variables.
+    However, since each process has its own physical address space, threads of \textit{different} processes do \textit{not} share memory by default. This also applies when we call \texttt{fork()}: the child process is an exact copy of the parent, but with a different physical address space, even though the virtual address space is the same.
+\end{answer}
+
+\begin{question}[4]
+    What is the main advantage of preemptive scheduling compared to nonpreemptive scheduling? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    Preemption allows the operating system to interrupt a process at any point, blocking it and allowing another process to run.
+    This means that the operating system can prevent a process from running for too long, which can prevent a process from monopolizing the CPU.
+\end{answer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/1.jpg}
+    \caption{}
+    \label{fig:1}
+\end{figure}
+
+\begin{question}[4]
+    What will the code in Figure \ref{fig:1} print? Explain briefly your answer. You can assume that all system call invocations are successful.
+\end{question}
+
+\begin{answer}
+    Only the child process wil run the \texttt{if}-statement, since \texttt{fork()} returns 0 in the child process and a positive value in the parent process.
+    As argued before, child and parent have different physical address spaces, so the child will increment its \textit{own} copy of \texttt{counter} and exit, after which it \texttt{exit()}s.
+    The parent process waits for any child process to exit (\texttt{waitpid(-1,...)}), after which it will print 1, the initial value of \texttt{counter}, since the child modified a different copy of \texttt{counter}.
+\end{answer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/2.jpg}
+    \caption{}
+    \label{fig:2}
+\end{figure}
+
+\begin{question}[4]
+    What will the code in Figure \ref{fig:2} most likely print? Explain briefly your answer. You can assume that all system call invocations are successful.
+\end{question}
+
+\begin{answer}
+    The code will most likely print a value less than \num{1000000}. Each of the \num{1000} threads will try to increment the shared (process-wide) \texttt{A} variable \num{1000} times.
+    However, \texttt{A++} is \textit{not} an atomic operation: it first loads the value of \texttt{A} into a register, increments it, and then stores it back into \texttt{A}.
+    There is thus a race condition between the threads: a thread can get blocked after loading the value of \texttt{A} into a register.
+    While it is blocked, other threads may read, increment, and update \texttt{A}. When the blocked thread resumes, it increments its old value of \texttt{A}
+    -- which was stored in the thread-local register -- and writes it back to \texttt{A}, effectively overwriting the progress made by the other threads. This results in ``lost updates'', causing the final
+    value of \texttt{A} to be lower than the expected \num{1000000}.
+\end{answer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{figures/3.jpg}
+    \caption{}
+    \label{fig:3}
+\end{figure}
+
+\begin{question}[4]
+    What will the code in Figure \ref{fig:3} most likely print? Explain briefly your answer. You can assume that all system call invocations are successful.
+\end{question}
+
+\begin{answer}
+    The code will in fact not print anything, since there is a \textit{deadlock}.
+    Thread 1 acquires the lock on Account 0 and at the same time Thread 2 acquires the lock on Account 1.
+    Thread 1 then tries to acquire the lock on Account 1, but it is blocked since it is already held by Thread 2.
+    Thread 2 then tries to acquire the lock on Account 0, but it is blocked since it is already held by Thread 1.
+    Both threads are now blocked and will never be unblocked, resulting in a deadlock.
+
+    We can fix this by ensuring that the threads always acquire the locks in the same global order, e.g. by checking \texttt{trs.from < trs.to}.
+    By forcing all threads to acquire locks in a specific global order (e.g., always lock the lower ID first, then the higher ID), we mathematically guarantee that a cycle cannot exist:
+    If Thread A locks Account 1, Thread B cannot lock Account 2 while waiting for Account 1 to become unlocked, because the rules would have required Thread B to lock Account 1 before trying to lock Account 2.
+\end{answer}
+
+\begin{question}{4}
+    You are developing an application that is composed of multiple collaborative processes. You
+    wish to implement the following functionality: if a resource is currently unavailable, the process should go to sleep
+    until it receives a wakeup signal from another the process. Which method you would use to avoid a race condition?
+    Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    A semaphore is the perfect fit for this kind of resource management problem.
+    Specifically, a counting semaphore can track resource availability: \texttt{sem\_wait} automatically puts the process to sleep if the count is zero, and \texttt{sem\_post} wakes it up if the resource becomes available (count goes from 0 to 1).
+
+    Crucially, because these are separate processes (not threads), the semaphore must be allocated in shared memory (e.g. using \texttt{mmap}) so all processes access the same synchronization variable.
+\end{answer}
+
+\begin{question}{4}
+    What is the key advantage of monolithic operating systems compared to microkernel operating systems?
+    Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    In monolythic systems, the whole operating system is run in kernel mode, which is faster and more efficient.
+
+    In microkernel systems, only the core fundamental services run in kernel mode, while other services run in user mode.
+    They have to use system calls (IPC) to communicate with the kernel, which adds overhead and can slow down performance.
+\end{answer}
+
+\begin{question}{4}
+    Which POSIX system call should you use to send the \texttt{SIGUSR1} signal to a child process? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    The \texttt{kill()} system call can be used to send a signal to a process.
+    It takes two arguments: the process ID of the process to send the signal to, and the signal to send.
+    In this case, we want to send the \texttt{SIGUSR1} signal to a child process, so we can use \texttt{kill(child\_pid, SIGUSR1)}.
+\end{answer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/4.jpg}
+    \caption{}
+    \label{fig:4}
+\end{figure}
+
+\begin{question}{4}
+    How many times will the letter `a' be printed if we execute the code in Figure 4? Explain briefly
+    your answer. You can assume that all system call invocations are successful.
+\end{question}
+
+\begin{answer}
+    The letter `a' will be printed \num{4} times.
+
+    The parent process will create a new child on the first \texttt{fork()}. Both processes (parent and child) will execute all code below the first \texttt{fork()}.
+    This means that both parent and child will create a new child on the second \texttt{fork()}.
+    In total, we now have 4 processes (the original parent, the original child and the new two children of each of them).
+    Each of these processes will execute the \texttt{printf("a")} statement, resulting in \num{4} prints of the letter `a'.
+\end{answer}
+
+\begin{question}[4]
+    What is the primary role of the Memory Management Unit (MMU)? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    The primary role of the Memory Management Unit (MMU) is to manage virtual memory.
+
+    It is responsible for translating virtual addresses to physical addresses.
+    More specifically, it maps \textit{virtual pages} to \textit{physical frames} and enforces logic along the way.
+    It does this using a \textit{page table} (often organized as a \textit{multi-level} hierarchy to save memory).
+
+    During this process, the MMU enforces logic via \textit{control bits} in the \textit{page table entry}:
+    \begin{itemize}
+        \item \textbf{Present Bit:} A page fault occurs if the page is not in RAM.
+        \item \textbf{Protection Bits:} Read/Write/Execute permissions.
+        \item \textbf{Referenced Bit:} Used by page replacement algorithms.
+        \item \textbf{Changed Bit:} If page was modified, it requires writing back to disk before eviction.
+    \end{itemize}
+\end{answer}
+
+\begin{question}[4]
+    Which is the key disadvantage of the NFU (Not Frequently Used) page replacement algorithm?
+    Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    NFU doesn't forget.
+
+    If a page is used a lot in the beginning of the process, but afterwards never again, the use frequency will be high and it will thus never be evicted.
+    This implies that there is less space for pages that are used later on a (less) frequent basis.
+\end{answer}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/5.jpg}
+    \caption{}
+    \label{fig:5}
+\end{figure}
+
+\begin{question}[4]
+    Assuming the current state of the memory is as shown in Figure \ref{fig:5}, name a virtual address that
+    will generate a page fault if accessed? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    The virtual page from byte address \SI{24}{\kibi\byte} to \SI{30}{\kibi\byte} will generate a page fault if accessed, because it is not mapped to any physical frame.
+    Hence, a byte address in this range, for example byte address \SI{24}{\kibi\byte} + \SI{1}{\byte} = \SI{24577}{\byte}, will generate a page fault.
+\end{answer}
+
+\begin{question}[4]
+    The DMA chip can transfer data from and to the memory without using the CPU. Name a scenario that it is not eﬃcient to use DMA for memory transfer? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    The DMA is slower than the CPU.
+    If the CPU is idle, it is thus more efficient to let the CPU handle the memory transfer itself at a higher speed.
+
+    Furthermore, in (non-battery-powered) embedded systems, getting rid of DMA makes sense, as it saves money.
+    (It is, however, more energy-efficient in battery-powered embedded systems.)
+\end{answer}
+
+\begin{question}[4]
+    Which is the purpose of a watchdog timer? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    A watchdog timer is a timer that resets the system if it expires.
+
+    It gets reset by the OS periodically, which means that if it expires, the OS is frozen.
+    In this case, the watchdog timer will reset the system, such that the OS runs again.
+\end{answer}
+
+\begin{question}[4]
+    Which is the key advantage of developing device drivers using interrupt-driven I/O? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    The key advantage is that it eliminates \textit{busy waiting} (or polling).
+
+    In interrupt-driven I/O, the CPU does not need to continuously check the device's status register.
+    Instead, it can put the calling process to sleep and switch to executing other processes while the I/O device performs its task.
+    The device notifies the CPU via an interrupt only when it is finished, thereby significantly improving CPU utilization and system
+    efficiency compared to \textit{programmed I/O}.
+\end{answer}
+
+\begin{question}[4]
+    In computer systems with multiple processors, name a challenge that characterises distributed
+    systems as opposed to multicore processors? Explain briefly your answer.
+\end{question}
+
+\begin{answer}
+    A major challenge is the lack of shared memory and the reliance on network communication.
+
+    In multicore systems (multiprocessors), processors share main memory and can communicate very quickly
+    (nanoseconds). In contrast, distributed systems consist of independent computers that must communicate
+    via message passing over a network, which introduces significantly higher latency (milliseconds)
+    and unreliability issues, such as lost or out-of-order packets.
+\end{answer}
+
+\subsection*{Long Questions}
+
+\begin{longquestion}[12]
+    \begin{enumerate}
+        \renewcommand{\labelenumi}{\roman{enumi}.}
+        \item Summarise the advantages and disadvantages of processes and threads.
+        \item You are developing a web browser. The web browser needs to support multiple parallel tabs, so that the user
+              can browse multiple websites in parallel. Would you implement the browser using multiple processes (one process
+              per tab) or multiple threads (one thread per tab)? Motivate your answer and discuss if the disadvantages of your
+              solution (processes or threads) are relevant in this use case. If relevant, also discuss how you would overcome them.
+    \end{enumerate}
+\end{longquestion}
+
+\begin{longquestion}[12]
+    \begin{enumerate}
+        \renewcommand{\labelenumi}{\roman{enumi}.}
+        \item Explain in your own words when using a spinlock (i.e., a busy-waiting mutex) in a multiprocessor system can
+              improve the performance.
+        \item You are using a multiprocessor system. The operating system implements hybrid mutexes. These mutexes
+              operate as follows. If a thread requests to acquire a locked mutex, the thread first continuously polls the mutex
+              (spins) for a period of time, $T$. After the time $T$ passes, the thread yields (context switch) and retries when it gets
+              rescheduled. The parameter $T$ is configurable, taking values in $\mu$s in the range $[0,65535]$. Setting $T = 0$ disables
+              spinning.
+
+              After long-term statistical analysis, you know that the time a thread needs to wait for a locked mutex to be released
+              follows the histogram provided in Figure 6. Moreover, a context switch takes 1000 $\mu$s.
+
+              Calculate the optimum value for the configuration parameter $T$, which minimises the overhead (i.e. the sum of time
+              the CPU wastes spinning and switching). For simplicity, you can consider that when the thread gets rescheduled
+              after the first context switch, it finds the mutex unlocked.
+    \end{enumerate}
+\end{longquestion}
+
+\begin{longquestion}[12]
+    After the presentation of the experiments of all other groups, propose a new experiment for the OS Challenge
+    that your group has not tested before. Motivate the experiment by explaining why you believe it will improve the
+    performance and describe how you would test if your hypothesis is true.
+\end{longquestion}
+
+\end{document}

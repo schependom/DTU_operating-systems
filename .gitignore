@@ -5,3 +5,13 @@
 # Ignore VM files
 
 .vagrant/
+
+# LaTeX
+*.aux
+*.log
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.out
+
+.vscode

@@ -19,11 +19,16 @@ int main(void)
 
   A = A + 1;
   printf("[%d] A = %d, address: %p\n", getpid(), A, &A);
+  // this prints the
+  // ! VIRTUAL ADDRESS,   which is the
+  // ! SAME               in parent and child processes
 
   return 0;
 
   /*
   Parent and child processes have their own copy of the variable A.
-  They each think they own it exclusively, but each process has its own virtual address space.
+  They each think they own it exclusively, but
+  ! each process has its own physical address space,
+  ! even though the virtual addresses are the same.
   */
 }

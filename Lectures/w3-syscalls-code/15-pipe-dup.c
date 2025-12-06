@@ -43,8 +43,8 @@ int main()
         //      -> After this call, both file descriptors refer to the same open file description
         //
         // Example:
-        //      saved-stdin = dup(0); // save the current file in fd 0 (stdin) in the highest free fd (e.g. 5)
-        //      dup2(saved-stdin, 0); // restore stdin from saved-stdin by copying the contents from fd slot 5 to fd slot 1
+        //      saved_stdin = dup(0); // save the current file in fd 0 (stdin) in the highest free fd (e.g. 5)
+        //      dup2(saved_stdin, 0); // restore stdin from saved-stdin by copying the contents from fd slot 5 to fd slot 1
 
         // Redirect everything that comes in at STDOUT (fd 1)
         //  to the write end of the pipe (link[1])

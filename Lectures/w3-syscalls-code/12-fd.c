@@ -50,6 +50,9 @@ int main(void)
   //  (a small integer that the kernel uses to identify the file)
   int fd = open("./temp.txt", O_WRONLY | O_CREAT, 0644);
 
+  // the | operator is a bitwise OR
+  //  it combines the flags O_WRONLY and O_CREAT
+
   // open(const char *pathname, int flags, mode_t mode);
   //
   //    -> pathname: path to the file

@@ -10,8 +10,8 @@ int main(void)
 
     printf("[%d] I am the parent process and I fork.\n", getpid());
 
-    // fork a child process
-    // and store its PID in a variable
+    // ! fork a child process
+    // ! and store its PID in a variable
     pid_t pid = fork();
     // -> The _t in pid_t stands for TYPE
     // -> Common naming convention for data types defined using a typedef

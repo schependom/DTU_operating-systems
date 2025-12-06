@@ -57,7 +57,7 @@ int main(void)
   pid_t pid1, pid2;
   FILE *f;
 
-  lock = fopen("lock", "w+");
+  lock = fopen("lock", "w+"); // read and write (+ create if not exists)
 
   pid1 = fork(); // fork a child process
   if (pid1 == 0)
@@ -78,7 +78,7 @@ int main(void)
   fscanf(f, "%d\n", &balance);
   fclose(f);
 
-  printf("Balance: %d\n", balance);
+  printf("Balance: %d\n", balance); // correct because of file locking
 
   return 0;
 }

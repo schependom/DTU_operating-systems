@@ -5,6 +5,12 @@
 
 int *A;
 
+/*
+Threads within the same process share the same memory space.
+Thus, modifications made to the variable A by one thread are
+*visible to the other thread.
+*/
+
 void *thread(void *input)
 {
   *A = *A + 1;
