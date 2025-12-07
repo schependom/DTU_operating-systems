@@ -9,8 +9,10 @@
 #include <unistd.h>
 
 #define THREAD_COUNT 10000
+
 int A = 0;
 pthread_t thread_id[THREAD_COUNT];
+
 void *count(void *input) {
   // 1. load
   // 2. increment
