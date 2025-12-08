@@ -72,6 +72,27 @@
 
 \maketitle
 
+\section*{Introduction}
+
+\begin{description}
+    \item[Aids allowed] All aids
+    \item[Exam duration] 4 hours
+    \item[Weighting] According to their respective points (100 points in total)
+\end{description}
+
+\textbf{Further notes:}
+
+\begin{itemize}
+    \item All questions contribute toward the final grade. The maximum number of points awarded by each correctly
+          answered question is listed next to the question.
+    \item For short questions, the following apply: (i) a brief answer is expected; (ii) you are also expected to briefly
+          explain your answer in approximately 2-3 lines; (iii) a correct answer with a correct explanation yields 4
+          points in total.
+    \item For long questions, the following apply: (i) there might be more than one correct answer; (ii) you are expected
+          to briefly explain your answer in approximately half a page; (iii) a complete and correct answer yields 12
+          points; (iv) if you make additional assumptions, remember to briefly explain them.
+\end{itemize}
+
 \section{Short questions}
 
 \subsection{General questions}
@@ -112,7 +133,13 @@
 \end{question}
 
 \begin{answer}
-    ...
+    It is efficient when the CPU is busy with other tasks (high CPU utilization).
+
+    By offloading the data transfer to the DMA controller, the CPU is free to execute other processes or
+    threads in parallel while the transfer takes place. This improves overall system throughput compared to Programmed I/O.
+
+    Additionally, it is efficient in battery-powered embedded systems,
+    as the DMA controller is more energy-efficient (even though it is slower) than the main CPU for moving data.
 \end{answer}
 
 \begin{question}[4]
@@ -311,7 +338,9 @@
 \end{question}
 
 \begin{answer}
-    The code will most likely print a value less than \num{1000000}. Each of the \num{1000} threads will try to increment the shared (process-wide) \texttt{A} variable \num{1000} times.
+    The code will most likely print a value less than \num{1000000}.
+
+    Each of the \num{1000} threads will try to increment the shared (process-wide) \texttt{A} variable \num{1000} times.
     However, \texttt{A++} is \textit{not} an atomic operation: it first loads the value of \texttt{A} into a register, increments it, and then stores it back into \texttt{A}.
     There is thus a race condition between the threads: a thread can get blocked after loading the value of \texttt{A} into a register.
     While it is blocked, other threads may read, increment, and update \texttt{A}. When the blocked thread resumes, it increments its old value of \texttt{A}
@@ -332,6 +361,7 @@
 
 \begin{answer}
     The code will in fact not print anything, since there is a \textit{deadlock}.
+
     Thread 1 acquires the lock on Account 0 and at the same time Thread 2 acquires the lock on Account 1.
     Thread 1 then tries to acquire the lock on Account 1, but it is blocked since it is already held by Thread 2.
     Thread 2 then tries to acquire the lock on Account 0, but it is blocked since it is already held by Thread 1.
@@ -732,10 +762,32 @@
     \end{enumerate}
 \end{longquestion}
 
-\begin{answer}
-    \begin{enumerate}
-        \renewcommand{\labelenumi}{\roman{enumi}.}
-        \item
+\begin{answer} \begin{enumerate} \renewcommand{\labelenumi}{\roman{enumi}.} \item I would design a Multithreaded Server with a Thread Pool and User-Level Preemption via Chunking.
+
+              \textbf{Parallelism Design:}
+              I would use a thread pool with a number of worker threads equal to the number of available CPU cores (4).
+              This avoids the high overhead of creating/destroying processes (\texttt{fork()}) for every request while maximizing CPU utilization.
+
+              \textbf{Prioritization Strategy:}
+              Since the score penalizes latency proportional to priority ($score \propto \sum \text{latency} \times \text{priority}$), a Priority 250 request is 250 times more critical than a Priority 1 request.
+              Non-preemptive scheduling fails here because a long-running Priority 1 task could block a Priority 250 task, destroying the score.
+              Conversely, OS-level preemption (processes) introduces too much overhead: it requires hardware support (a timer interrupt) and complex synchronization mechanisms to avoid race conditions.
+
+              Therefore, I would implement \textbf{task chunking with voluntary yielding}:
+              \begin{itemize}
+                  \item Maintain two internal queues: a High-Priority Queue (for P=250) and a Low-Priority Queue (for P=1).
+                  \item Split brute-force tasks into small ``chunks'' (e.g., checking 10,000 hashes).
+                  \item Worker threads process one chunk at a time. After finishing a chunk of a Low-Priority task, the thread checks the High-Priority Queue.
+                  \item If a high-priority request is waiting, the thread yields: it pushes the remainder of its current Low-Priority task back to the Low-Priority Queue and immediately switches to process the High-Priority requests.
+              \end{itemize}
+
+        \item The most efficient policy would be \textbf{LRU (Least Recently Used)} implemented with a \textbf{Hash Map and Doubly Linked List}.
+
+              \textbf{Explanation:}
+              \begin{itemize}
+                  \item \textbf{Policy:} LRU is widely considered an excellent approximation of the optimal algorithm (i.e., the best possible policy).  In a constrained cache of only 100 entries with unlimited incoming requests, ensuring that the most recently accessed (and thus ``hot'') items are preserved gives the best chance of a hit in realistic scenarios exhibiting temporal locality.
+                  \item \textbf{Implementation Efficiency:} To make it ``most efficient'' (fastest), we must avoid $O(N)$ searches. Using a \textbf{Hash Map} allows for $O(1)$ lookup to check if a request is cached. Combining this with a \textbf{Doubly Linked List} allows for $O(1)$ updates to move accessed items to the front (mark as recently used) and $O(1)$ eviction from the tail when the cache is full. This minimizes the CPU overhead of the caching mechanism itself.
+              \end{itemize}
     \end{enumerate}
 \end{answer}
 
@@ -877,6 +929,80 @@ Alternative answer:
     We will run the \texttt{run-client-highspread-priority-short-delay.sh} script. This script provides the specific workload (high priority spread + short delays) where standard FIFO (Experiment 4) fails to prioritize correctly, but standard (OS-level) preemption fails due to overhead.
 
     If this new implementation yields a lower \texttt{score} than the Experiment 5 Priority implementation, the hypothesis is confirmed.
+\end{answer}
+
+Ultimate answer:
+
+\begin{answer}
+
+    \textbf{Proposed experiment:}
+
+    User-level (voluntary) ``check-and-yield'' preemption with dual (high/low priority) FIFO queues.
+
+    \textbf{Motivation:}
+
+    The scoring formula ($\mathrm{score} = \frac{1}{N} \sum \mathrm{delay} \times \mathrm{priority}$) requires processing high-priority requests as fast as possible.
+    My teammates' previous experiments highlighted two critical bottlenecks:
+    \begin{enumerate}
+        \item \textbf{Experiment 5} showed that \textit{OS-level} preemption and priority queues (max-heap) introduce significant overhead ($O(\log N)$ insertions and context switching) that outweighs the benefits of reordering.
+        \item \textbf{Experiment 4b} showed that ``chunking'' increases throughput, but performing the split in the main thread (creating \textit{all} chunks of a request \textit{up front}) causes a dispatcher bottleneck: heavy global queue contention and starvation of other threads.
+    \end{enumerate}
+
+    \textbf{Hypothesis:}
+
+    We can minimize the weighted latency \texttt{score} by implementing \textbf{user-level preemption} and \textbf{lazy chunking}.
+    By using simple FIFO queues ($O(1)$) instead of a max-heap priority queue ($O(\log n)$) and allowing worker threads to \textit{voluntarily}
+    yield to high-priority tasks (as opposed to OS-level preemption), we also avoid queue overhead and OS context switches.
+    Finally, by splitting tasks \textit{lazily} in the worker threads rather than the main thread all at once, we eliminate the dispatcher bottleneck.
+
+    % We can achieve a lower score, because of fast processing of high-priority requests, by:
+    % \begin{itemize}
+    %     \item Lowering queue overhead by using FIFO (as opposed to a slow $O(\log n)$ max-heap).
+    %     \item Using separate queues for high/low priority tasks. More specifically, one \texttt{Global\_High\_Queue} and one double-ended \texttt{Local\_Low\_Queue} for each worker thread.
+    %     \item Avoiding queue contention \begin{itemize}
+    %               \item Not doing all ``chunking'' at once up front (as we do now)
+    %               \item Using a global high-priority queue.
+    %               \item Using a thread-level double-ended queue for low-priority tasks.
+    %           \end{itemize}
+    %     \item Letting worker threads steal low-priority tasks from other worker threads' \texttt{Local\_Low\_Queue}.
+    %     \item Voluntary yielding (user-level preemption): after processing a chunk of a low-priority task,
+    %           the thread atomically checks if the \texttt{Global\_High\_Queue} is non-empty.
+    % \end{itemize}
+
+    \textbf{Implementation}
+
+    One thread (the listener) is dedicated to listening for new requests and enqueuing them in the appropriate queue based on priority level $p$:
+    if $p>1$, it enqueues the request in the \texttt{Global\_High\_Queue}, otherwise (if $p=1$) in the (double-ended) \texttt{Local\_Low\_Queue}
+    of the \textit{next} worker thread (load balancing based on \texttt{next\_worker\_id = (next\_worker\_id+1) \% num\_workers}).
+
+    The priority levels of requests are generated using an exponential distribution.
+    This distribution means that the vast majority of requests will have the lowest priority level ($p=1$),
+    while high-priority requests ($p>1$) will appear rarely `from time to time'.
+    Therefore, the most efficient threshold is likely to split the queues into Priority 1 (``bulk'' traffic) and Priority > 1 (``urgent'' traffic)
+
+    Crucially, the main thread does NOT split the request (like is done in the current implementation) into chunks all at once.
+    If the main thread tried to split a range of \num{1000000} hashes into \num{1000} chunks up front,
+    it would be stuck in a loop (blocking new connections) and would flood the memory with task structs.
+    Instead, the splitting happens \textit{lazily} (when needed) by the worker threads.
+
+    Each worker runs a loop that performs \textbf{user-level preemption}:
+    \begin{enumerate}
+        \item \textbf{Check urgent (lock-free):} Perform an atomic read on the \texttt{Global\_High\_Queue} size. This is a cheap operation. Only if the size $>0$ does the thread acquire the mutex to process the high-priority task immediately.
+        \item \textbf{Local work:} If no high-priority work exists, pop a task from the \texttt{head} of the thread's own \texttt{Local\_Low\_Queue}.
+        \item \textbf{Lazy chunking:} If the task range exceeds \texttt{CHUNK\_SIZE}, the \textit{worker} splits it. It processes the first chunk immediately and pushes the remaining large range back onto the \texttt{head} of its local queue. This prevents the ``freezing'' seen in Exp 4b because the main thread never loops; the worker generates work as needed.
+        \item \textbf{Work stealing:} If the local queue is empty, try to steal a task from the \texttt{tail} of another worker's queue (balancing the load).
+              Acquire the specific mutex to steal
+              work from the tail (FIFO order) of that threads \texttt{Local\_Low\_Queue}, taking the largest (and coldest) available chunks (the remainders pushed earlier)
+              without disturbing the owner's work at the head.
+        \item \textbf{Yield:} After processing one small chunk, the loop restarts at Step 1. This allows a high-priority request to ``interrupt'' a low-priority task within milliseconds without the heavy overhead of an OS context switch.
+    \end{enumerate}
+
+    \textbf{Testing:}
+
+    We will run the \texttt{run-client-highspread-priority-short-delay.sh} script.
+    This workload (high concurrency, mixed priorities) caused previous implementations to fail due to either blocking (single global queue and up front chunking)
+    or overhead (OS-level preemption). We expect this hybrid solution to achieve the lowest weighted latency score by
+    combining the low overhead of FIFO with the responsiveness of voluntary preemption.
 \end{answer}
 
 \end{document}
