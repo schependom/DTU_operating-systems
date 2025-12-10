@@ -944,6 +944,7 @@ An integer $\geq 0$.
 -   If $=0$, semaphore is **blocked** until it becomes $>0$.
 
 ```c
+// BELOW IS NOT C, BUT PSEUDOCODE
 #define N 10
 typedef int semaphore;
 
@@ -971,6 +972,56 @@ void consumer() {
         up(&mutex);
         up(&empty);
     }
+}
+```
+
+Actual C:
+
+```c
+#include <semaphore.h>
+#include <pthread.h>
+
+sem_t mutex;
+sem_t empty;
+sem_t full;
+
+void producer() {
+    while (true) {
+        sem_wait(&empty);
+        sem_wait(&mutex);
+        // critical region
+        sem_post(&mutex);
+        sem_post(&full);
+    }
+}
+
+void consumer() {
+    while (true) {
+        sem_wait(&full);
+        sem_wait(&mutex);
+        // critical region
+        sem_post(&mutex);
+        sem_post(&empty);
+    }
+}
+
+int main() {
+    sem_init(&mutex, 0, 1);
+    sem_init(&empty, 0, N);
+    sem_init(&full, 0, 0);
+    
+    pthread_t producer_thread, consumer_thread;
+    pthread_create(&producer_thread, NULL, producer, NULL);
+    pthread_create(&consumer_thread, NULL, consumer, NULL);
+    
+    pthread_join(producer_thread, NULL);
+    pthread_join(consumer_thread, NULL);
+
+    sem_destroy(&mutex);
+    sem_destroy(&empty);
+    sem_destroy(&full);
+    
+    return 0;
 }
 ```
 
@@ -1408,6 +1459,25 @@ When an interrupt occurs, many instructions on the CPU can be at various stages 
 -   Only a **daemon process** has permissions to acquire a device
 -   User applications print via the **daemon**
 -   This prevents users from never releasing the device
+
+## Why not ageing as page replacement algorithm?
+
+While Ageing is an "efficient approximation to LRU", it has specific limitations compared to WSClock:
+
+- Finite Memory (Short History): Ageing keeps only a "short memory of page usage". It uses a finite counter (e.g., 8 bits). Once a page has not been referenced for enough clock ticks to clear the counter (shift it to zero), the algorithm loses the ability to distinguish when it was last used relative to other idle pages.
+
+- Periodic Overhead: The Ageing algorithm requires the OS to "periodically shift counters right and insert the R bit for every page in memory. This consumes CPU cycles at every clock tick, regardless of whether a page fault has occurred.
+
+Why WSClock is Preferred
+
+- WSClock is considered a "good efficient algorithm" and is "widely used in practice"  because it solves the problems of previous algorithms by combining their strengths:
+
+- Locality of Reference: WSClock implements the Working Set model, which takes advantage of "locality of reference". It aims to keep the set of pages a process is actively using (referenced within the last τ seconds) in memory, rather than just the least recently used one relative to others.
+
+- Efficiency: It combines the Clock algorithm with the Working Set information. Instead of scanning and updating all pages periodically (like Ageing), it uses a circular list and a pointer (hand). It only needs to examine pages when it needs to evict one, checking if the page is in the working set (age <= $\tau$) or not (age > $\tau$).
+
+
+Simplicity: It provides the benefits of the Working Set model but remains "simple to implement" compared to the pure Working Set algorithm, which is "somewhat expensive".
 
 ## Exam Questions
 
