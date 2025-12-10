@@ -137,7 +137,7 @@ although they are based on the course material (slides and coding examples) cove
     However, since each process has its own physical address space,
     threads of \textit{different} processes do \textit{not} share memory by default.
     This also applies when we call \texttt{fork()}: the child process is an exact copy of the parent,
-    but with a different physical address space, even though the virtual address space is the same.
+    but with a different physical address space.
     While shared memory can be set up for processes, it requires system calls (e.g. \texttt{mmap()}).
     Threads have this implicitly.
 \end{answer}
@@ -148,12 +148,12 @@ although they are based on the course material (slides and coding examples) cove
 
 \begin{answer}
     Preemption allows the operating system to interrupt a process at any point, blocking it and allowing another process to run.
-    This means that the operating system can prevent a process from running for too long, which can prevent a process from monopolizing the CPU.
+    This means that the operating system can prevent a process from running for too long.
+    In a non-preemptive system, a process must explicitly yield the CPU to another process, which can lead to a process monopolizing the CPU.
 \end{answer}
 
 \begin{question}[4]
-    The DMA chip can transfer data from and to the memory without using the CPU. Name a scenario that it is not eﬃcient to use DMA for memory transfer?
-    Explain briefly your answer.
+    The DMA chip can transfer data from and to the memory without using the CPU. Name a scenario that it is not eﬃcient to use DMA for memory transfer? Explain briefly your answer.\\
 \end{question}
 
 \begin{answer}
@@ -173,13 +173,15 @@ although they are based on the course material (slides and coding examples) cove
 \end{question}
 
 \begin{answer}
-    It is efficient when the CPU is busy with other tasks (high CPU utilization).
+    It is efficient when the CPU is busy with other tasks (high CPU utilization) and the
+    data transfer is not super small.
 
     By offloading the data transfer to the DMA, the CPU is free to execute other processes or
     threads in parallel while the transfer takes place. The DMA issues an interrupt when it's done
     transferring all the data in its buffer.
-    This improves overall system throughput compared to \textit{Programmed I/O}.
-    Compared to \textit{Interrupt-Driven I/O}, it reduces the number of interrupts
+    This improves overall system throughput compared to \textit{Programmed I/O}, where the CPU
+    continuously polls the device (busy-waiting) until the transfer is complete.
+    Compared to \textit{Interrupt-Driven I/O}, on the other hand, it reduces the number of interrupts
     from one per character to one per buffer.
 
     Additionally, it is efficient in battery-powered embedded systems,
@@ -193,12 +195,13 @@ although they are based on the course material (slides and coding examples) cove
 \begin{answer}
     A watchdog timer is a timer that resets the system if it expires.
 
-    It gets reset by the OS periodically, which means that if it expires, the OS is frozen.
-    In this case, the watchdog timer will reset the system, such that the OS runs again.
+    It gets reset by the OS periodically, which means that if it expires, the OS is frozen (e.g. because of
+    an infinite loop or a deadlock in the kernel).
+    In this case, the watchdog timer will reset the system, such that the OS can run again.
 \end{answer}
 
 \begin{question}[4]
-    Describe a bug or error that would trigger a watchdog timer reboot? Explain briey your answer.
+    Describe a bug or error that would trigger a watchdog timer reboot? Explain briefly your answer.
 \end{question}
 
 \begin{answer}
@@ -208,11 +211,10 @@ although they are based on the course material (slides and coding examples) cove
     That is, it is used to recover from the unresponsive state.
 
     Normally, the watchdog timer is reset periodically by the OS.
-    However, imagine we have an infinite loop in a kernel module: a deadlock
-    or an infinite loop in the scheduler for example. Then the watchdog
-    timer is not reset anymore, and it will eventually expire and trigger a reboot.
+    However, if a kernel bug or error causes the OS to freeze (e.g. an infinite loop or a deadlock),
+    the watchdog timer is not reset anymore, and it will eventually expire and trigger a reboot.
 
-    Infinite loops in \textit{programs} do \textit{not} cause a watchdog timer reboot if we use a preamptive scheduler.
+    Infinite loops in \textit{programs} do \textit{not} cause a watchdog timer reboot if we use a preemptive scheduler.
     In that case, the OS can interrupt the application after its quotum of CPU time expires and it can then switch to another process.
 \end{answer}
 
@@ -234,10 +236,6 @@ although they are based on the course material (slides and coding examples) cove
               which \textit{immediately} handles the key press event. This makes the system more responsive to user input. If we would implement
               this without interrupt-driven I/O, we would have to periodically check the keyboard status, which is inefficient and can lead to delays.
     \end{enumerate}
-
-    Instead, it can put the calling process to sleep and switch to executing other processes while the I/O device performs its task.
-    The device notifies the CPU via an interrupt only when it is finished, thereby significantly improving CPU utilization and system
-    efficiency compared to \textit{programmed I/O}.
 \end{answer}
 
 \begin{question}[4]
@@ -252,6 +250,12 @@ although they are based on the course material (slides and coding examples) cove
     (nanoseconds). In contrast, distributed systems consist of independent computers that must communicate
     via message passing over a network, which introduces significantly higher latency (milliseconds)
     and unreliability issues, such as lost or out-of-order packets.
+
+    Furthermore, unlike a multicore system which runs a single shared OS,
+    a distributed system consists of independent nodes that may run different
+    operating systems and belong to different organizations.
+    This makes \textit{coordination} (via protocols) and \textit{load balancing} much harder
+    than just managing threads on a single OS.
 \end{answer}
 
 \begin{question}[4]
@@ -260,12 +264,13 @@ although they are based on the course material (slides and coding examples) cove
 \end{question}
 
 \begin{answer}
-    \begin{enumerate} \item Shared memory (via \texttt{mmap}): Two or more processes share a specific region of memory (or the OS kernel memory). It is fast but requires careful synchronization (e.g. via mutexes).
-        \item Files (via \texttt{open}): Processes communicate by reading and writing data to the same file on the disk. This method requires explicit locking mechanisms (like \texttt{lockf}) to avoid race conditions when multiple processes access the file simultaneously.
-        \item Pipes (via \texttt{pipe}): A unidirectional data channel managed by the kernel that connects the standard output of one process to the standard input of another.
+    \begin{enumerate}
+        \item \textbf{Shared memory} (via \texttt{mmap}): Two or more processes share a specific region of memory (or the OS kernel memory). It is fast but requires careful synchronization (e.g. via mutexes).
+        \item \textbf{Files} (via \texttt{open}): Processes communicate by reading and writing data to the same file on the disk. This method requires explicit locking mechanisms (like \texttt{lockf}) to avoid race conditions when multiple processes access the file simultaneously.
+        \item \textbf{Pipes} (via \texttt{pipe}): A unidirectional data channel managed by the kernel that connects the standard output of one process to the standard input of another.
         \item Sockets (via \texttt{socket}): An endpoint for communication that allows processes to exchange data streams or messages. While often used for networking (TCP/UDP), UNIX domain sockets are used for efficient bidirectional IPC on the same machine.
         \item Via the status code of a child process (\texttt{wait} / \texttt{waitpid}): A parent process pauses its execution to wait for a child process to terminate. The operating system passes the child's exit status (an integer) back to the parent, allowing the child to communicate its final state or result.
-        \item Signals (via \texttt{kill}): Signals are asynchronous software interrupts sent to a process to notify it of an event (e.g., \texttt{SIGALRM}). They interrupt the normal flow of execution to run a specific handler function, acting as a control mechanism rather than a data transfer channel.
+        \item \textbf{Signals} (via \texttt{kill}): Signals are asynchronous software interrupts sent to a process to notify it of an event (e.g., \texttt{SIGALRM}). They interrupt the normal flow of execution to run a specific handler function, acting as a control mechanism rather than a data transfer channel.
     \end{enumerate}
 \end{answer}
 
@@ -283,7 +288,7 @@ although they are based on the course material (slides and coding examples) cove
     the CPU to process data or initiate the next I/O request. This minimizes
     response time (users experience less latency) and keeps I/O devices busy,
     whereas a low priority would cause them to wait behind CPU-bound processes,
-    leaving peripherals idle, because theseprocesses use the CPU for
+    leaving peripherals idle, because these CPU-bound processes use the CPU for
     longer periods.
 \end{answer}
 
@@ -311,21 +316,20 @@ although they are based on the course material (slides and coding examples) cove
 \end{question}
 
 \begin{answer}
-    Microkernel operating systems are more stable and more flexible than monolithic systems.
+    Microkernel operating systems are more \textit{stable} and more \textit{flexible} than monolithic systems.
 
     In microkernel systems, the kernel is kept very small: only basic services are run in kernel mode.
-    All other OS services are run in user mode.
+    All other OS services are run in user mode. This ensures stability, which is not guaranteed in monolithic systems:
+    in monolithic systems, the whole operating system runs in kernel mode, which means that a bug in for example a driver can cause the entire system to crash.
 
     \textit{(The user-mode services (like a file server or device driver) need to talk to each other to function.
         However, because they are separate processes in user mode, they cannot directly access each other's memory.
         To communicate, a service sends a message to the kernel (via a system call).
         The kernel then passes that message to the intended recipient service.)}
 
-    In monolithic systems, however, the whole operating system runs in kernel mode.
-    This means that in these systems, a bug in for example a driver can cause the entire system to crash,
-    whereas in microkernel systems, drivers are usually run in user mode.
-
-    Furthermore, an extension of a monolithic system requires the whole kernel to be rebuilt, while an extension of a microkernel system only requires the relevant modules to be rebuilt.
+    Furthermore, an extension of a monolithic system requires the whole kernel to be rebuilt,
+    while an extension of a microkernel system only requires the relevant modules to be rebuilt.
+    This makes microkernel systems more flexible than monolithic systems.
 \end{answer}
 
 \begin{question}[4]
@@ -333,9 +337,11 @@ although they are based on the course material (slides and coding examples) cove
 \end{question}
 
 \begin{answer}
-    The \texttt{kill()} system call can be used to send a signal to a process.
-    It takes two arguments: the process ID of the process to send the signal to, and the signal to send.
-    In this case, we want to send the \texttt{SIGUSR1} signal to a child process, so we can use \texttt{kill(child\_pid, SIGUSR1)}.
+    Using \texttt{kill(child\_pid, SIGUSR1)}, we can send the \texttt{SIGUSR1} signal to a child process.
+
+    The \texttt{kill()} system call takes two arguments: the process ID of the process to send the signal to, and the signal to send.
+    In this case, we want to send the \texttt{SIGUSR1} signal to a child process, so we can use \texttt{kill(child\_pid, SIGUSR1)},
+    assuming that the child process id was stored as follows: \texttt{int child\_pid = fork();}
 \end{answer}
 
 \begin{question}[4]
@@ -345,11 +351,7 @@ although they are based on the course material (slides and coding examples) cove
 \begin{answer}
     The primary role of the Memory Management Unit (MMU) is to manage virtual memory.
 
-    It is responsible for translating virtual addresses to physical addresses.
-    This allows us to run programs that are much bigger than the available physical memory,
-    by swapping parts of the program in and out of RAM as needed.
-
-    More specifically, it maps \textit{virtual pages} to \textit{physical frames} and enforces logic along the way.
+    More specifically, it maps \textit{virtual pages} to \textit{physical frames} and enforces \textit{logic} (e.g. protection, presentness, ...) along the way.
     It does this using a \textit{page table} (often organized as a \textit{multi-level} hierarchy to save memory).
 
     During this process, the MMU enforces logic via \textit{control bits} in the \textit{page table entry}:
@@ -359,6 +361,9 @@ although they are based on the course material (slides and coding examples) cove
         \item \textbf{Referenced Bit:} Used by page replacement algorithms.
         \item \textbf{Changed Bit:} If page was modified, it requires writing back to disk before eviction.
     \end{itemize}
+    Virtual pages are ``chunks'' of the virtual address space of the process.
+    They allow us to run programs that are much bigger than the available physical memory,
+    by swapping parts of the program in and out of RAM as needed.
 \end{answer}
 
 \begin{question}[4]
@@ -369,21 +374,18 @@ although they are based on the course material (slides and coding examples) cove
 \begin{answer}
     Static relocation involves assigning fixed memory addresses to programs at compile time. It's not flexible and doesn't allow for moving processes into memory at runtime.
 
-    It is is needed when running multiple programmes without memory abstraction (i.e. without virtual memory).
+    Static relocation is needed when running multiple programmes without memory abstraction (i.e. without virtual memory).
     In this case, each programme occupies one `block' of the physical memory and we need to
     \textit{add the base address} of these blocks to the \textit{memory references} of instructions
     in those programmes. This is problematic because it requires modifying the
-    executable code upon compilation and makes it difficult to move processes in memory (e.g. during swapping) during runtime.
+    executable code upon compilation and makes it difficult to move processes in memory during runtime.
 
-    Dynamic relocation \textit{does} allow programs to be loaded into different memory locations at runtime.
-
-    Each process sees its own \textit{virtual memory space},
-    and the OS doesn't need to change all memory addresses in the programmes. Instead, the address in the \textit{base register} gets added
-    to every memory reference \textit{at runtime}. A \textit{limit register} ensures the
-    process does not access memory outside its allocated block, eliminating the need for memory protection keys (like in static relocation).
-
-    Crucially, the OS can easily \textit{move} processes (=swapping) in/out of physical memory simply by updating the registers.
-    This is much more efficient than in static relocation.
+    Using dynamic relocation, the OS doesn't need to change memory addresses in the programs.
+    Instead, the address in the \textit{base register} is added to every memory reference
+    \textit{at runtime} by the CPU. Simultaneously, a \textit{limit register}
+    is checked to ensure the process does not access memory outside its allocated block.
+    This hardware-based approach solves both the addressing problem
+    and the protection problem (replacing memory protection keys, like in static relocation) efficiently.
 \end{answer}
 
 \begin{question}[4]
@@ -398,7 +400,7 @@ although they are based on the course material (slides and coding examples) cove
     Without clock interrupts, the operating system cannot force a process to yield the CPU, making preemptive scheduling impossible.
 
     An alarm signal, sent with \texttt{signal(SIGALRM, handler)} and \texttt{alarm(seconds)},
-    requires clock interrupts to be able to signal the process when the alarm expires.
+    also requires clock interrupts to be able to signal the process when the alarm expires.
 \end{answer}
 
 \begin{question}[4]
@@ -427,7 +429,7 @@ although they are based on the course material (slides and coding examples) cove
 \end{answer}
 
 \begin{question}[4]
-    When implementing mutual exclusion with a spinlock is good for eﬃciency? Explain briefly your answer.
+    When is implementing mutual exclusion with a spinlock good for eﬃciency? Explain briefly your answer.
 \end{question}
 
 \begin{answer}
@@ -443,9 +445,8 @@ although they are based on the course material (slides and coding examples) cove
 \end{answer}
 
 \begin{question}[4]
-    Nodes in a distributed system typically use protocols that have been standardised by interna-
-    tional standardisation bodies to communicate with each other. Are international standards also necessary when
-    nodes in a multicomputer system communicate with each other? Explain briey your answer
+    Nodes in a distributed system typically use protocols that have been standardised by international standardisation bodies to communicate with each other. Are international standards also necessary when
+    nodes in a multicomputer system communicate with each other? Explain briefly your answer.
 \end{question}
 
 \begin{answer}
@@ -469,7 +470,7 @@ although they are based on the course material (slides and coding examples) cove
         \item Preemptive scheduling is better suited than non-preemptive scheduling.
         \item Non-preemptive scheduling is more appropriate than preemptive scheduling.
     \end{enumerate}
-    For each example, explain briey why you chose the particular scheduling technique and how it benefits the
+    For each example, explain briefly why you chose the particular scheduling technique and how it benefits the
     application.
 \end{question}
 
@@ -668,12 +669,12 @@ Alternative answer:
 
 \begin{answer}
     The code will print the numbers 1, 2, 3, 4, and 5 on separate lines.
-    If the code is executed multiple times, the printed numbers will always be in the \textit{same} order.
+    If the code is executed multiple times, \textbf{the printed numbers will always be in the \textit{same} order}.
 
-    The \texttt{pthread\_join} function is called inside the loop,
+    The \texttt{pthread\_join} function is called \textbf{inside the loop},
     immediately after each thread is created. \texttt{pthread\_join} blocks the
     calling process (the \texttt{main} thread) and forces it to wait for the specific thread
-    to exit before continuing execution. This ensures \textit{sequential} execution:
+    to exit before continuing execution. This ensures \textbf{sequential} execution:
     the main thread cannot increment the loop variable \texttt{i} or create
     the next thread until the current thread has finished printing and exited.
 
@@ -774,9 +775,12 @@ Alternative answer:
     The second \texttt{fork()} creates 2 new processes (total 4). All 4 processes execute \texttt{a++}, incrementing their own private copy of \texttt{a} to 1. Then all 4 execute the second \texttt{printf}, printing 1.
 
     \textbf{Role of waitpid:}
-    The \texttt{waitpid(-1, NULL, 0)} call instructs the calling process to suspend execution (block) until \textit{any} one of its child processes terminates. This synchronization ensures that parents do not exit before their children, allowing the system to reap the child's exit status and prevent the creation of zombie processes.
+    The \texttt{waitpid(-1, NULL, 0)} call instructs the calling process to suspend
+    execution (block) until \textit{any} one of its child processes terminates.
+    This synchronization ensures that parents do not exit before their children,
+    allowing the system to reap the child's exit status and prevent the creation of
+    \textit{zombie processes} (child processes that have terminated but are still in the process table).
 
-    \vspace{0.2cm}
     \textbf{Distinct Memory Copies:}
     There are \textbf{8} distinct copies of the memory space created.
 
@@ -919,8 +923,8 @@ Alternative answer:
               Using processes ensures that if one tab crashes, the others remain unaffected.
         \item \textbf{Relevance of disadvantages:} The disadvantage of higher resource usage (memory overhead per process) is relevant.
               Processes are ``heavyweight'' compared to threads.
-        \item \textbf{Overcoming them:} Modern operating systems mitigate the creation overhead using \textit{copy-on-write} (CoW),
-              which allows the child process to share the parent's memory until it modifies it, reducing the overhead of process creation.
+        \item \textbf{Overcoming them:} Modern operating systems mitigate the creation overhead using \textbf{\textit{copy-on-write} (CoW),
+                  which allows the child process to share the parent's memory until it modifies it, reducing the overhead of process creation}.
               To handle necessary communication (e.g., sending rendered data to the main window), efficient IPC mechanisms like \textit{shared memory} can be used.
     \end{itemize}
 \end{answer}
@@ -1075,18 +1079,36 @@ Alternative answer:
 
         \item \textbf{Application to the OS Challenge:}
 
-              \textit{Preemptive scheduling} would likely be better.
+              \textit{Preemptive scheduling} is significantly better for this challenge.
 
-              The scoring mechanism heavily penalizes latency proportional to this priority level: $$\texttt{score} = \frac{1}{\texttt{total}} \sum_{i=1}^{\texttt{total}} \texttt{delay}_i \cdot \texttt{priority}_i $$
-              This means that we should especially aim to keep the latency as low as possible for the highest priority requests.
+              The scoring mechanism heavily penalizes latency for high-priority tasks:
+              $\texttt{score} = \frac{1}{\texttt{total}} \sum \texttt{delay} \cdot \texttt{priority}$.
+              In a non-preemptive model, if the 4 worker threads are working on low-priority
+              hash calculations (Priority 1), a subsequent high-priority request (Priority 250)
+              would be blocked until all 4 worker threads finish their current calculations.
+              This delay would be multiplied by 250,
+              severely impacting the final score.
 
-              If a low-priority, high-difficulty request arrives first and occupies a processing thread non-preemptively,
-              a subsequent high-priority request would be blocked until the slow request finishes.
-              This would result in a massive latency penalty for the high-priority request, severely impacting the final score.
-
-              A preemptive approach allows the server to interrupt the processing of a low-priority request
-              immediately upon the arrival of a high-priority one, processing the urgent task first.
-              This minimizes the weighted latency and optimizes the score according to the challenge's specific benchmarks.
+              However, relying on standard \textit{OS-level} preemption is inefficient because
+              the OS does not know which tasks are urgent.
+              Instead, I implement \textbf{voluntary yielding} (user-level preemption):
+              \begin{itemize}
+                  \item Worker threads process low-priority tasks in small chunks (e.g., 1000 hashes).
+                  \item Between chunks, the worker performs an \textit{atomic check} on the
+                        Global High-Priority Queue size.
+                  \item If the queue is non-empty, the worker ``yields'' by pushing the
+                        remainder of its current
+                        low-priority task back to its local queue and processing the
+                        high-priority task immediately.
+              \end{itemize}
+              This is more efficient than letting the OS handle preemption by creating separate
+              threads for low/high priority tasks and adjusting their priorities with system calls
+              like for example \texttt{pthread\_setschedparam} (using \texttt{SCHED\_FIFO}) or \texttt{nice()}.
+              While that approach works, it forces the kernel to perform an expensive
+              \textbf{context switch} (saving registers, trapping into kernel mode,
+              and polluting the L1/L2 cache) every time a high-priority request arrives.
+              Voluntary yielding achieves the same responsiveness with simple user-space
+              instructions, preserving high throughput.
     \end{enumerate}
 \end{answer}
 
@@ -1106,7 +1128,7 @@ Alternative answer:
 
 \begin{answer} \begin{enumerate} \renewcommand{\labelenumi}{\roman{enumi}.}
 
-        \item I would design a \textbf{Dispatcher-Worker} model with \textbf{User-Level Preemption} and a \textbf{Hybrid Queueing} system,
+        \item I would design a \textbf{Dispatcher-Worker} model with \textbf{Voluntary Yielding} and a \textbf{Hybrid Queueing} system,
               as explained in Long Question \ref{optimal_implementation}
 
               \textbf{Parallelism \& Queue Design:}\\
@@ -1139,11 +1161,12 @@ Alternative answer:
               In this way, we utilize nearly 100\% of the computing power, instead of $\sim 75\%$ if we would use 3 worker threads instead of 4.
               The overhead of the context switch for the Dispatcher is negligible compared to the massive throughput gain of having that 4th core crunching hashes 99\% of the time.
 
-              \textbf{Prioritisation (User-Level Preemption):}\\
+              \textbf{Prioritisation:}
+
               The scoring formula is $score \propto \sum \text{latency} \times \text{priority}$. A Priority 250 request is 250 times more detrimental
-              to the score than a Priority 1 request and should be handled as soon as possible. Standard non-preemptive scheduling is unsafe because a
-              long P1 task could block a P250 task. OS-level preemption (kernel threads) introduces context-switching overhead.
-              Instead, I would implement \textbf{Voluntary Yielding}:
+              to the score than a Priority 1 request and should be handled as soon as possible. Non-preemptive scheduling is unsafe because a
+              long P1 task could block a P250 task. \textbf{Relying on standard OS preemptive scheduling is insufficient because the OS does not know that a queued P250 request is more urgent than a running P1 task}. A long P1 task could block a P250 task, destroying the score.
+              Instead, I implement \textbf{Voluntary Yielding}:
               \begin{itemize}
                   \item Worker threads split large requests in small chunks (e.g., computing 1000 hashes at a time) \textit{themselves, when needed}. The dispatcher does \textit{not} do this all up front, because then it would hold the lock for a long time.
                   \item Between chunks, the worker performs an atomic check on the Global High-Priority Queue size.
@@ -1153,12 +1176,13 @@ Alternative answer:
         \item The most efficient policy would be the \textbf{Clock Algorithm} (Second Chance).
 
               While \textbf{LRU} (Least Recently Used) is a better approximation of the optimal algorithm,
-              it requires moving a node to the front of a linked list on \textbf{every} cache hit.
+              it requires moving a node to the front of a linked list on \textbf{every} cache hit, as well as a hardware timer.
               In a multi-threaded server, this requires acquiring a write-lock on the cache data structure
               for every read operation, creating a massive serialization bottleneck even for a small cache
               of 100 entries.
 
-              \textbf{Why Clock is superior here:}\\
+              \textbf{Why Clock is superior here:}
+
               The Clock algorithm approximates LRU with significantly lower overhead. Hash requests (tuples of \texttt{(hash, SHA256 pre-image)}) are organized in a circular list with a simple ``Referenced'' bit (R-bit).
               On a cache hit, we simply set the $R=1$. This can often be done \textit{atomically} without locking the entire structure.
               On a cache miss (eviction), the ``hand'' sweeps the buffer: if $R=1$, it sets $R=0$ (second chance); if $R=0$, it evicts the entry.
@@ -1217,13 +1241,6 @@ Alternative answer:
     \end{align*}
     So we see that the optimal spinning time is $T^* = \SI{500}{\micro s}$ with a cost of $C^* = \SI{430}{\micro s}$.
 \end{answer}
-
-\begin{longquestion}[12]
-    \label{optimal_implementation}
-    After the presentation of the experiments of all other groups, propose a new experiment for the OS Challenge
-    that your group has not tested before. Motivate the experiment by explaining why you believe it will improve the
-    performance and describe how you would test if your hypothesis is true.
-\end{longquestion}
 
 % \begin{answer}
 %     \textbf{Proposed experiment:}
@@ -1310,26 +1327,100 @@ Alternative answer:
 
 % Ultimate answer:
 
+% \begin{longquestion}[12]
+%     \label{optimal_implementation}
+%     After the presentation of the experiments of all other groups, propose a new experiment for the OS Challenge
+%     that your group has not tested before. Motivate the experiment by explaining why you believe it will improve the
+%     performance and describe how you would test if your hypothesis is true.
+% \end{longquestion}
+
+% \begin{answer}
+
+%     \textbf{Proposed experiment:}
+
+%     I would design a \textbf{Dispatcher-Worker} model with \textbf{Voluntary Yielding} and a \textbf{Hybrid FIFO Queueing} system,
+
+%     \textbf{Motivation:}
+
+%     The scoring formula ($\mathrm{score} = \frac{1}{N} \sum \mathrm{delay} \times \mathrm{priority}$) requires processing high-priority requests as fast as possible.
+%     My teammates' previous experiments highlighted two critical bottlenecks:
+%     \begin{enumerate}
+%         \item \textbf{Experiment 5} showed that \textit{OS-level} preemption and priority queues (max-heap) introduce significant overhead ($O(\log N)$ insertions and context switching) that outweighs the benefits of reordering.
+%         \item \textbf{Experiment 4b} showed that ``chunking'' increases throughput, but performing the split in the main thread (creating \textit{all} chunks of a request \textit{up front}) causes a dispatcher bottleneck: heavy global queue contention and starvation of other threads.
+%     \end{enumerate}
+
+%     \textbf{Hypothesis:}
+
+%     We can minimize the weighted latency \texttt{score} by implementing \textbf{user-level preemption} and \textbf{lazy chunking}.
+%     By using simple FIFO queues ($O(1)$) instead of a max-heap priority queue ($O(\log n)$) and allowing worker threads to \textit{voluntarily}
+%     yield to high-priority tasks (as opposed to OS-level preemption), we also avoid queue overhead and OS context switches.
+%     Finally, by splitting tasks \textit{lazily} in the worker threads rather than the main thread all at once, we eliminate the dispatcher bottleneck.
+
+%     \textbf{Implementation}
+
+%     One thread (the listener) is dedicated to listening for new requests and enqueuing them in the appropriate queue based on priority level $p$:
+%     if $p>1$, it enqueues the request in the \texttt{Global\_High\_Queue}, otherwise (if $p=1$) in the (double-ended) \texttt{Local\_Low\_Queue}
+%     of the \textit{next} worker thread (load balancing based on \texttt{next\_worker\_id = (next\_worker\_id+1) \% num\_workers}).
+
+%     There are 4 CPU cores available, so I would use 1 dispatcher thread and \textbf{4 worker threads}. The dispatcher is I/O-bound: Its job is to \texttt{accept()} a connection and read 49 bytes.
+%     This takes microseconds. For the vast majority of time, this thread is blocked (sleeping)
+%     in the OS kernel, waiting for an incoming packet. The workers are CPU-bound: Their job is to compute SHA-256 hashes.
+%     This is purely mathematical and will utilize 100\% of a CPU core's cycles without blocking for I/O. When a TCP request arrives, the OS wakes up the Dispatcher thread. It momentarily preempts (pauses) one of the Worker threads on one core.
+%     The Dispatcher runs for a tiny fraction of a second (to accept and queue), then goes back to sleep. The preempted Worker immediately resumes.
+%     In this way, we utilize nearly 100\% of the computing power, instead of $\sim 75\%$ if we would use 3 worker threads instead of 4.
+%     The overhead of the context switch for the Dispatcher is negligible compared to the massive throughput gain of having that 4th core crunching hashes 99\% of the time.
+
+%     The priority levels of requests are generated using an exponential distribution.
+%     This distribution means that the vast majority of requests will have the lowest priority level ($p=1$),
+%     while high-priority requests ($p>1$) will appear rarely `from time to time'.
+%     Therefore, the most efficient threshold is likely to split the queues into Priority 1 (``bulk'' traffic) and Priority > 1 (``urgent'' traffic)
+
+%     Crucially, the main thread does NOT split the request (like is done in the current implementation) into chunks all at once.
+%     If the main thread tried to split a range of \num{1000000} hashes into \num{1000} chunks up front,
+%     it would be stuck in a loop (blocking new connections) and would flood the memory with task structs.
+%     Instead, the splitting happens \textit{lazily} (when needed) by the worker threads.
+
+%     Each worker runs a loop that performs \textbf{user-level preemption}:
+%     \begin{enumerate}
+%         \item \textbf{Check urgent (lock-free):} Perform an atomic read on the \texttt{Global\_High\_Queue} size. This is a cheap operation. Only if the size $>0$ does the thread acquire the mutex to process the high-priority task immediately.
+%         \item \textbf{Local work:} If no high-priority work exists, pop a task from the \texttt{head} of the thread's own \texttt{Local\_Low\_Queue}.
+%         \item \textbf{Lazy chunking:} If the task range exceeds \texttt{CHUNK\_SIZE}, the \textit{worker} splits it. It processes the first chunk immediately and pushes the remaining large range back onto the \texttt{head} of its local queue. This prevents the ``freezing'' seen in Exp 4b because the main thread never loops; the worker generates work as needed.
+%         \item \textbf{Work stealing:} If the local queue is empty, try to steal a task from the \texttt{tail} of another worker's queue (balancing the load).
+%               Acquire the specific mutex to steal
+%               work from the tail (FIFO order) of that threads \texttt{Local\_Low\_Queue}, taking the largest (and coldest) available chunks (the remainders pushed earlier)
+%               without disturbing the owner's work at the head.
+%         \item \textbf{Yield:} After processing one small chunk, the loop restarts at Step 1. This allows a high-priority request to ``interrupt'' a low-priority task within milliseconds without the heavy overhead of an OS context switch.
+%     \end{enumerate}
+
+%     \textbf{Testing:}
+
+%     We will run the \texttt{run-client-highspread-priority-short-delay.sh} script.
+%     This workload (high concurrency, mixed priorities) caused previous implementations to fail due to either blocking (single global queue and up front chunking)
+%     or overhead (OS-level preemption). We expect this hybrid solution to achieve the lowest weighted latency score by
+%     combining the low overhead of FIFO with the responsiveness of voluntary preemption.
+% \end{answer}
+% Ultimate answer:
+
 \begin{answer}
 
     \textbf{Proposed experiment:}
 
-    User-level (voluntary) ``check-and-yield'' preemption with dual (high/low priority) FIFO queues.
+    I would design a \textbf{Dispatcher-Worker} model with \textbf{Voluntary Yielding} (Manual Preemption) and a \textbf{Hybrid FIFO Queueing} system.
 
     \textbf{Motivation:}
 
     The scoring formula ($\mathrm{score} = \frac{1}{N} \sum \mathrm{delay} \times \mathrm{priority}$) requires processing high-priority requests as fast as possible.
     My teammates' previous experiments highlighted two critical bottlenecks:
     \begin{enumerate}
-        \item \textbf{Experiment 5} showed that \textit{OS-level} preemption and priority queues (max-heap) introduce significant overhead ($O(\log N)$ insertions and context switching) that outweighs the benefits of reordering.
+        \item \textbf{Experiment 5} showed that relying on \textit{Standard OS Scheduling} (e.g., using separate high-priority threads) introduces significant overhead because the OS must force a context switch every time a high-priority task arrives, outweighing the benefits of reordering.
         \item \textbf{Experiment 4b} showed that ``chunking'' increases throughput, but performing the split in the main thread (creating \textit{all} chunks of a request \textit{up front}) causes a dispatcher bottleneck: heavy global queue contention and starvation of other threads.
     \end{enumerate}
 
     \textbf{Hypothesis:}
 
-    We can minimize the weighted latency \texttt{score} by implementing \textbf{user-level preemption} and \textbf{lazy chunking}.
+    We can minimize the weighted latency \texttt{score} by implementing \textbf{voluntary yielding} and \textbf{lazy chunking}.
     By using simple FIFO queues ($O(1)$) instead of a max-heap priority queue ($O(\log n)$) and allowing worker threads to \textit{voluntarily}
-    yield to high-priority tasks (as opposed to OS-level preemption), we also avoid queue overhead and OS context switches.
+    yield to high-priority tasks, we avoid the overhead of the \textit{extra} context switches that occur when waking up distinct high-priority threads.
     Finally, by splitting tasks \textit{lazily} in the worker threads rather than the main thread all at once, we eliminate the dispatcher bottleneck.
 
     \textbf{Implementation}
@@ -1338,7 +1429,7 @@ Alternative answer:
     if $p>1$, it enqueues the request in the \texttt{Global\_High\_Queue}, otherwise (if $p=1$) in the (double-ended) \texttt{Local\_Low\_Queue}
     of the \textit{next} worker thread (load balancing based on \texttt{next\_worker\_id = (next\_worker\_id+1) \% num\_workers}).
 
-    There are 4 CPU cores available, so I would use 1 dispatcher thread and \textbf{4 worker threads}. The dispatcher is I/O-bound: Its job is to \texttt{accept()}s a connection and read 49 bytes.
+    There are 4 CPU cores available, so I would use 1 dispatcher thread and \textbf{4 worker threads}. The dispatcher is I/O-bound: Its job is to \texttt{accept()} a connection and read 49 bytes.
     This takes microseconds. For the vast majority of time, this thread is blocked (sleeping)
     in the OS kernel, waiting for an incoming packet. The workers are CPU-bound: Their job is to compute SHA-256 hashes.
     This is purely mathematical and will utilize 100\% of a CPU core's cycles without blocking for I/O. When a TCP request arrives, the OS wakes up the Dispatcher thread. It momentarily preempts (pauses) one of the Worker threads on one core.
@@ -1349,14 +1440,14 @@ Alternative answer:
     The priority levels of requests are generated using an exponential distribution.
     This distribution means that the vast majority of requests will have the lowest priority level ($p=1$),
     while high-priority requests ($p>1$) will appear rarely `from time to time'.
-    Therefore, the most efficient threshold is likely to split the queues into Priority 1 (``bulk'' traffic) and Priority > 1 (``urgent'' traffic)
+    Therefore, the most efficient threshold is likely to split the queues into Priority 1 (``bulk'' traffic) and Priority > 1 (``urgent'' traffic).
 
     Crucially, the main thread does NOT split the request (like is done in the current implementation) into chunks all at once.
     If the main thread tried to split a range of \num{1000000} hashes into \num{1000} chunks up front,
     it would be stuck in a loop (blocking new connections) and would flood the memory with task structs.
     Instead, the splitting happens \textit{lazily} (when needed) by the worker threads.
 
-    Each worker runs a loop that performs \textbf{user-level preemption}:
+    Each worker runs a loop that performs \textbf{voluntary yielding}:
     \begin{enumerate}
         \item \textbf{Check urgent (lock-free):} Perform an atomic read on the \texttt{Global\_High\_Queue} size. This is a cheap operation. Only if the size $>0$ does the thread acquire the mutex to process the high-priority task immediately.
         \item \textbf{Local work:} If no high-priority work exists, pop a task from the \texttt{head} of the thread's own \texttt{Local\_Low\_Queue}.
@@ -1365,14 +1456,14 @@ Alternative answer:
               Acquire the specific mutex to steal
               work from the tail (FIFO order) of that threads \texttt{Local\_Low\_Queue}, taking the largest (and coldest) available chunks (the remainders pushed earlier)
               without disturbing the owner's work at the head.
-        \item \textbf{Yield:} After processing one small chunk, the loop restarts at Step 1. This allows a high-priority request to ``interrupt'' a low-priority task within milliseconds without the heavy overhead of an OS context switch.
+        \item \textbf{Yield:} After processing one small chunk, the loop restarts at Step 1. This allows a high-priority request to ``interrupt'' a low-priority task within milliseconds without requiring the OS to perform a context switch to wake up a different thread.
     \end{enumerate}
 
     \textbf{Testing:}
 
     We will run the \texttt{run-client-highspread-priority-short-delay.sh} script.
     This workload (high concurrency, mixed priorities) caused previous implementations to fail due to either blocking (single global queue and up front chunking)
-    or overhead (OS-level preemption). We expect this hybrid solution to achieve the lowest weighted latency score by
+    or overhead (OS-based priority scheduling). We expect this hybrid solution to achieve the lowest weighted latency score by
     combining the low overhead of FIFO with the responsiveness of voluntary preemption.
 \end{answer}
 
@@ -1413,8 +1504,8 @@ The questions below were not posed in previous years, but were added by me.
               \begin{itemize}
                   \item If $R=0$, the page is old and unused, so it is evicted immediately (just like FIFO).
                   \item If $R=1$, the page is given a second chance.
-                        The R bit is cleared to 0, and the page is moved to the end of the queue
-                        (treated as if it just arrived). The algorithm then continues to search for a page with R=0 .
+                        The $R$ bit is cleared to 0, and the page is moved to the end of the queue
+                        (treated as if it just arrived). The algorithm then continues to search for a page with $R=0$.
               \end{itemize}
 
         \item \textbf{Clock Algorithm:}
@@ -1555,12 +1646,10 @@ The questions below were not posed in previous years, but were added by me.
 
     \begin{lstlisting}[language=C]
     do {
-        // 1. Check shared 'mutex' without locking bus
         if (mutex == 1) {
             delay();                // Exponential backoff
             status = 1;
         } else {
-            // 2. Only try atomic TSL if mutex looks free
             lock_bus();
             status = TSL(&mutex);   // Returns old value
             unlock_bus();
@@ -1657,9 +1746,7 @@ The questions below were not posed in previous years, but were added by me.
 
     In a standard (two-cycle) transfer, the DMA controller reads data into a temporary internal DMA
     register in one cycle, and then writes it to the destination in a second cycle.
-    This allows it to address two different memory locations or devices sequentially.
-
-    Fly-by mode skips the intermediate step: it reads data and writes it directly from the source to the destination.
+    This allows it to address two different memory locations or devices sequentially. Fly-by mode skips the intermediate step: it reads data and writes it directly from the source to the destination.
     The DMA (Direct Memory Access) chip has an \textbf{address} bus and a \textbf{DACK} bus (DMA Acknowledge).
     Fly-by mode places the memory address on the \textbf{address} bus and uses the \textbf{DACK} (DMA Acknowledge) line to select the I/O device simultaneously.
     It thereby doubles the effective transfer speed by cutting bus cycles in half (only one cycle per transfer).
@@ -1679,9 +1766,7 @@ The questions below were not posed in previous years, but were added by me.
 \begin{answer}
     \textbf{Spooling} is a technique used to manage access to dedicated I/O devices (such as printers) that cannot be safely shared by multiple processes simultaneously.
 
-    If users were allowed to acquire a dedicated device directly, a user might hold onto it indefinitely, blocking everyone else. To solve this, spooling decouples the application from the device.
-
-    User applications do not talk to the device directly. Instead, they place the data (e.g., a file to be printed) into a special spooling directory.
+    If users were allowed to acquire a dedicated device directly, a user might hold onto it indefinitely, blocking everyone else. To solve this, spooling decouples the application from the device. User applications do not talk to the device directly. Instead, they place the data (e.g., a file to be printed) into a special spooling directory.
     A special background process, called a daemon (e.g., the printer daemon), is the \textit{only} process with permission to acquire and control the physical device.
     The daemon reads files from the directory and sends them to the device one by one.
 
