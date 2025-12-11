@@ -19,6 +19,8 @@ This document contains a set of questions and answers related to the course 0215
 #include <sys/socket.h>
 ```
 
+57165
+
 ## Manual
 
 If you type `man printf`, you will likely get the manual for the Terminal command printf, not the C function. The manual is divided into "Sections" to solve this.
@@ -59,8 +61,6 @@ Two ways:
 ## Device drivers
 
 A piece of software in the OS that talks to a controller.
-
-TODO
 
 ## Buses
 
@@ -1009,18 +1009,18 @@ int main() {
     sem_init(&mutex, 0, 1);
     sem_init(&empty, 0, N);
     sem_init(&full, 0, 0);
-    
+
     pthread_t producer_thread, consumer_thread;
     pthread_create(&producer_thread, NULL, producer, NULL);
     pthread_create(&consumer_thread, NULL, consumer, NULL);
-    
+
     pthread_join(producer_thread, NULL);
     pthread_join(consumer_thread, NULL);
 
     sem_destroy(&mutex);
     sem_destroy(&empty);
     sem_destroy(&full);
-    
+
     return 0;
 }
 ```
@@ -1136,7 +1136,7 @@ $$|\texttt{PT2}| = 2^{10} \text{entries} \times \text{size of entry} = 2^{10} \t
 
 ### If we didn't use a page directory
 
-Without a page directory, we would need to keep the entire page table in memory, which would be $2^{20} \times 4 \text{ bytes} = 2^{22} \text{ bytes} = 4 \text{MiB}$$.
+Without a page directory, we would need to keep the entire page table in memory, which would be $$2^{20} \times 4 \text{ bytes} = 2^{22} \text{ bytes} = 4 \text{MiB}$$.
 
 ### Example
 
@@ -1464,18 +1464,17 @@ When an interrupt occurs, many instructions on the CPU can be at various stages 
 
 While Ageing is an "efficient approximation to LRU", it has specific limitations compared to WSClock:
 
-- Finite Memory (Short History): Ageing keeps only a "short memory of page usage". It uses a finite counter (e.g., 8 bits). Once a page has not been referenced for enough clock ticks to clear the counter (shift it to zero), the algorithm loses the ability to distinguish when it was last used relative to other idle pages.
+-   Finite Memory (Short History): Ageing keeps only a "short memory of page usage". It uses a finite counter (e.g., 8 bits). Once a page has not been referenced for enough clock ticks to clear the counter (shift it to zero), the algorithm loses the ability to distinguish when it was last used relative to other idle pages.
 
-- Periodic Overhead: The Ageing algorithm requires the OS to "periodically shift counters right and insert the R bit for every page in memory. This consumes CPU cycles at every clock tick, regardless of whether a page fault has occurred.
+-   Periodic Overhead: The Ageing algorithm requires the OS to "periodically shift counters right and insert the R bit for every page in memory. This consumes CPU cycles at every clock tick, regardless of whether a page fault has occurred.
 
 Why WSClock is Preferred
 
-- WSClock is considered a "good efficient algorithm" and is "widely used in practice"  because it solves the problems of previous algorithms by combining their strengths:
+-   WSClock is considered a "good efficient algorithm" and is "widely used in practice" because it solves the problems of previous algorithms by combining their strengths:
 
-- Locality of Reference: WSClock implements the Working Set model, which takes advantage of "locality of reference". It aims to keep the set of pages a process is actively using (referenced within the last τ seconds) in memory, rather than just the least recently used one relative to others.
+-   Locality of Reference: WSClock implements the Working Set model, which takes advantage of "locality of reference". It aims to keep the set of pages a process is actively using (referenced within the last τ seconds) in memory, rather than just the least recently used one relative to others.
 
-- Efficiency: It combines the Clock algorithm with the Working Set information. Instead of scanning and updating all pages periodically (like Ageing), it uses a circular list and a pointer (hand). It only needs to examine pages when it needs to evict one, checking if the page is in the working set (age <= $\tau$) or not (age > $\tau$).
-
+-   Efficiency: It combines the Clock algorithm with the Working Set information. Instead of scanning and updating all pages periodically (like Ageing), it uses a circular list and a pointer (hand). It only needs to examine pages when it needs to evict one, checking if the page is in the working set (age <= $\tau$) or not (age > $\tau$).
 
 Simplicity: It provides the benefits of the Working Set model but remains "simple to implement" compared to the pure Working Set algorithm, which is "somewhat expensive".
 
